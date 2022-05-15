@@ -1,0 +1,64 @@
+// This code lists the files inside a Google Drive folder (selected by the folder's name) and creates a OCR of each file. The text created is put in the same google sheets used to run the script.
+// Esse código lista os arquivos dentro de uma pasta do google drive (selecionada pelo nome da pasta) e cria o OCR de cada arquivo. O texto criado é inserido na mesma planilha do google sheets usada para rodar o script.
+
+function listaArquivos() {
+  // nome da pasta que desejo listar os documentos
+  var foldername = 'NOME_DA_PASTA';
+
+  // Coleta a coleção de pastas e subpastas que contem o nome dado no parâmetro
+  var folders = DriveApp.getFoldersByName(foldername);
+  var folder = folders.next();
+
+  // Coleta os arquivos contidos na pasta procurada
+  var contents = folder.getFiles();
+
+  // Retorna a planilha ativa (tipo SHEET)
+  var sheet = SpreadsheetApp.getActiveSheet();
+
+  // Apaga o conteúdo anterior da aba ativa;
+  var range = sheet.clear();
+
+  // Insere na planilha os valores da função
+  sheet.appendRow( ['ID', 'Nome', 'Link', 'Data de criação','Tipo do arquivo','OCR'] );
+  
+  // Variaveis utilizadas para coletar as informações desejadas dos arquivos
+  var file;
+  var id;
+  var name;
+  var link;
+  var date;
+  var type;
+  var blob;
+  var doc;
+  var ocr;
+  var text;
+
+  // Loop para localizar o próximo arquivo
+  while(contents.hasNext()) {
+    file = contents.next();
+
+    // Coletando as informações desejadas
+    id = file.getId()
+    name = file.getName();
+    link = file.getUrl();
+    date = file.getDateCreated();
+    type = file.getMimeType();
+    blob = file.getBlob();
+
+    // Cria o OCR a partir do blob do arquivo
+    ocr = Drive.Files.insert({title: name, mimeType: file.getMimeType()}, blob, {ocr: true} );
+
+    // Cria um documento google a partir do blob
+    doc = DocumentApp.openById(ocr.id);
+
+    // Coleta o texto do documento google
+    text = doc.getBody().getText();
+
+    // Deleta os documentos google criados
+    Drive.Files.remove(ocr.id );
+
+    // Insere na planilha os valores da função
+    sheet.appendRow( [id, name, link, date, type, text] );
+  }
+
+}
